@@ -51,6 +51,17 @@ double **read_data()
   return data;
 }
 
+void write_csv(double real_value, double predicted_value)
+{
+  FILE *file = fopen("chlorine_predictions.csv", "a");
+  if (file == NULL) {
+    printf("Could not open file for writing: chlorine_predictions.csv");
+    exit(-1);
+  }
+  fprintf(file, "%lf,%lf\n", real_value, predicted_value);
+  fclose(file);
+}
+
 
 void free_data(double **data)
 {
@@ -86,6 +97,9 @@ int main()
       TKCM(&opts);
 
       printf("%lf\t%lf\n", real_value, opts.ts[opts.offset]);
+      // write to csv file for analysis
+      write_csv(real_value, opts.ts[opts.offset]);
+
     }
   }
 
