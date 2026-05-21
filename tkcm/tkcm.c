@@ -51,14 +51,43 @@ void TKCM(Opts *opts)
       j = j-opts->l >= 0 ? j-opts->l : 0;
     }
   }
-
+  
   // step 3: impute missing value
-  double sum = 0;
+
+  double weighted_sum = 0.0;
+  double weight_total = 0.0;
+
+  const double eps = 1e-8;
+
   for (int i = 0; i < opts->k; ++i) {
-    int pos = opts->offset + opts->l + A[i] - 1;
-    sum += opts->ts[mod(pos, opts->L)];
+
+    int match_idx = A[i];
+
+    int pos = opts->offset + opts->l + match_idx - 1;
+
+    double value = opts->ts[mod(pos, opts->L)];
+
+    double weight = 1.0;
+
+    if (opts->mode == TKCM_MEAN) {
+
+      weight = 1.0;
+
+    } else if (opts->mode == TKCM_WEIGHTED_INV) {
+
+      weight = 1.0 / (D[match_idx] + eps);
+
+    } else if (opts->mode == TKCM_WEIGHTED_EXP) {
+
+      weight = exp(-opts->alpha * D[match_idx]);
+
+    }
+
+    weighted_sum += weight * value;
+    weight_total += weight;
   }
-  opts->ts[opts->offset] = sum / opts->k;
+
+  opts->ts[opts->offset] = weighted_sum / weight_total;
 
   free(M);
   free(D);
