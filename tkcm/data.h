@@ -3,7 +3,7 @@
 
 #include "tkcm.h"
 
-double **read_data();
+double **read_data(const char *filename);
 
 void free_data(double **data);
 

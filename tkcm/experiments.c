@@ -27,11 +27,16 @@ const char *mode_name(ImputeMode mode)
     return "unknown";
 }
 
-int main()
+void run_experiments(const char *data_file, const char *output_file)
 {
-    double **data = read_data();
+    double **data = read_data(data_file);
 
-    FILE *out = fopen("results.csv", "w");
+    FILE *out = fopen(output_file, "w");
+
+    if (!out) {
+        printf("Could not open output file %s\n", output_file);
+        exit(1);
+    }
 
     fprintf(out,
         "mode,k,l,d,alpha,index,real,pred,error\n");
@@ -100,15 +105,29 @@ int main()
                         );
                     }
                 }
-                printf("Finished mode=%s, k=%d, l=%d\n", mode_name(opts.mode), opts.k, opts.l);
+
+                printf("Finished %s | mode=%s, k=%d, l=%d\n",
+                    data_file,
+                    mode_name(opts.mode),
+                    opts.k,
+                    opts.l
+                );
+
                 free_time_series(&opts);
             }
         }
     }
 
     fclose(out);
-
     free_data(data);
+}
+
+int main()
+{
+    run_experiments("cl2fullLarge.dat", "results.csv");
+    printf("Finished first experiment\n");
+    run_experiments("cl2fullLarge_shifted.dat", "results_shifted.csv");
+    printf("Finished shifted experiment\n");
 
     return 0;
 }

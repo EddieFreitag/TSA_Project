@@ -28,7 +28,7 @@ void free_time_series(Opts *opts)
     free(opts->ts);
 }
 
-double **read_data()
+double **read_data(const char *filename)
 {
     double **data =
         calloc(ROWS, sizeof(double *));
@@ -38,11 +38,10 @@ double **read_data()
             calloc(COLS, sizeof(double));
     }
 
-    FILE *file =
-        fopen("cl2fullLarge.dat", "r");
+    FILE *file = fopen(filename, "r");
 
     if (file == NULL) {
-        printf("Could not open dataset\n");
+        printf("Could not open dataset: %s\n", filename);
         exit(-1);
     }
 
@@ -53,7 +52,13 @@ double **read_data()
             double value;
 
             if (fscanf(file, "%lf", &value) != 1) {
-                printf("Error reading dataset\n");
+                printf(
+                    "Error reading dataset at row %d col %d\n",
+                    i,
+                    j
+                );
+
+                fclose(file);
                 exit(-1);
             }
 
