@@ -12,4 +12,4 @@ experiments:
 	$(CC) $(CFLAGS) -o experiments experiments.c tkcm.c data.c -lm
 
 clean:
-	rm -rf *.o ./paper ./chlorine ./results.csv ./experiments
+	rm -rf *.o ./paper ./chlorine ./experiments

@@ -5,6 +5,67 @@
 
 #define POS(row,col) (((nr_patterns+1)*(row)) + (col))
 
+double l2_distance(Opts *opts, int j)
+{
+    double dist = 0.0;
+    for (int i = 0; i < opts->d; ++i) {
+        for (int x = 0; x < opts->l; ++x) {
+            int pos = opts->offset + opts->l + j - 1 - x;
+            double x1 = opts->ref_ts[i][mod(pos, opts->L)];
+            double x2 = opts->ref_ts[i][mod(opts->offset - x, opts->L)];
+            double diff = x1 - x2;
+            dist += diff * diff;
+        }
+    }
+    return sqrt(dist);
+}
+
+double l1_distance(Opts *opts, int j)
+{
+    double dist = 0.0;
+    for (int i = 0; i < opts->d; ++i) {
+        for (int x = 0; x < opts->l; ++x) {
+            int pos = opts->offset + opts->l + j - 1 - x;
+            double x1 = opts->ref_ts[i][mod(pos, opts->L)];
+            double x2 = opts->ref_ts[i][mod(opts->offset - x, opts->L)];
+            dist += fabs(x1 - x2);
+        }
+    }
+    return dist;
+}
+
+double dtw_distance(Opts *opts, int j)
+{
+    int l = opts->l;
+    double *dtw = calloc((l + 1) * (l + 1), sizeof(double));
+
+    #define DTW(a,b) dtw[(a)*(l+1) + (b)]
+    // Initialize DTW matrix
+    for (int i = 0; i <= l; ++i) {
+        for (int k = 0; k <= l; ++k) {
+            DTW(i,k) = INFINITY;
+        }
+    }
+    DTW(0,0) = 0.0;
+    for (int x = 1; x <= l; ++x) {
+        for (int y = 1; y <= l; ++y) {
+            double cost = 0.0;
+            for (int dim = 0; dim < opts->d; ++dim) {
+                int pos1 = opts->offset + opts->l + j - x;
+                int pos2 = opts->offset - y + 1;
+                double v1 = opts->ref_ts[dim][mod(pos1, opts->L)];
+                double v2 = opts->ref_ts[dim][mod(pos2, opts->L)];
+                cost += fabs(v1 - v2);
+            }
+            double best = fmin(DTW(x-1,y), fmin(DTW(x,y-1), DTW(x-1,y-1)));
+            DTW(x,y) = cost + best;
+        }
+    }
+    double result = DTW(l,l);
+    free(dtw);
+    return result;
+}
+
 void TKCM(Opts *opts)
 {
   int nr_patterns = opts->L - 2*opts->l + 1;
@@ -13,17 +74,14 @@ void TKCM(Opts *opts)
   int *A = calloc(opts->k, sizeof(int));
 
   // step 1: compute pattern dissimilarities
-  for (int j = 1; j <= opts->L-2*opts->l+1; ++j) {
-    D[j] = 0;
-    for (int i = 0; i < opts->d; ++i) {
-      for (int x = 0; x <= opts->l-1; x++) {
-        int pos = opts->offset + opts->l + j - 1 - x;
-        double x1 = opts->ref_ts[i][mod(pos, opts->L)];
-        double x2 = opts->ref_ts[i][mod(opts->offset - x, opts->L)];
-        D[j] += pow(x1-x2, 2);
-      }
+  for (int j = 1; j <= nr_patterns; ++j) {
+    if (opts->metric == DIST_L2) {
+      D[j] = l2_distance(opts, j);
+    } else if (opts->metric == DIST_L1) {
+      D[j] = l1_distance(opts, j);
+    } else if (opts->metric == DIST_DTW) {
+      D[j] = dtw_distance(opts, j);
     }
-    D[j] = sqrt(D[j]);
   }
 
   // step 2.1: dynamic programming
